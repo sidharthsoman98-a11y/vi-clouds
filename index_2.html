@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#4C9ED4">
+<title>Clouds Eleven</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<!-- ==========================================================================
+     CLOUDS ELEVEN
+     TO EDIT THE WORDS: go to PART 1 in the script below.
+     Each cloud has  latin / gloss / tap / body[].
+     Every string in body[] becomes its own paragraph. Keep them short.
+     Nothing else needs touching.
+     ========================================================================== -->
+
+<style>
+:root{
+  --cream:#F4E9D8;
+  --ink:#1B4A79;
+  --ink-soft:#5E8CB4;
+  --red:#DC4B3E;
+  --sky:#9BC0D8;
+  --display:"Bricolage Grotesque","Arial Black",sans-serif;
+  --body:"Newsreader",Georgia,serif;
+  --mono:"Space Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+html{background:var(--sky);}
+body{background:var(--sky);color:var(--cream);font-family:var(--body);overscroll-behavior-y:none;}
+
+#stage{position:fixed;inset:0;height:100vh;height:100dvh;overflow:hidden;transition:background-color .2s linear;}
+#world{position:absolute;left:0;right:0;top:0;will-change:transform;}
+#route{position:absolute;left:0;top:0;width:100%;pointer-events:none;will-change:transform;}
+#route path{fill:none;stroke:var(--cream);stroke-width:2.5;stroke-linecap:round;stroke-dasharray:1 14;opacity:.45;}
+#spacer{width:1px;}
+
+#grain{position:fixed;inset:0;z-index:6;pointer-events:none;opacity:.32;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='.42'/></svg>");}
+#vignette{position:fixed;inset:0;z-index:5;pointer-events:none;
+  background:radial-gradient(125% 85% at 50% 50%,transparent 55%,rgba(12,32,60,.3));}
+
+.level{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;
+  cursor:pointer;border:0;background:none;padding:0;margin:0;color:inherit;font:inherit;}
+.level svg{display:block;width:100%;height:auto;overflow:visible;}
+.cloudwrap{position:relative;width:100%;transition:transform .18s ease;}
+.level:active .cloudwrap{transform:scale(.975);}
+.badge{position:absolute;left:-2px;top:-2px;width:34px;height:34px;border-radius:50%;
+  background:var(--cream);color:var(--ink);font-family:var(--mono);font-weight:700;font-size:13px;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--ink);z-index:2;}
+.taplabel{margin-top:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--cream);background:rgba(27,74,121,.55);border:1px solid rgba(244,233,216,.5);
+  padding:6px 12px;border-radius:99px;white-space:nowrap;animation:breathe 2.6s ease-in-out infinite;}
+.level.read .taplabel{opacity:.4;animation:none;}
+@keyframes breathe{0%,100%{transform:translateY(0);opacity:.92}50%{transform:translateY(-3px);opacity:1}}
+
+#her{position:fixed;z-index:4;width:66px;margin-left:-33px;pointer-events:none;}
+#her svg{width:100%;height:auto;display:block;}
+
+#hud{position:fixed;top:0;left:0;right:0;z-index:7;display:flex;justify-content:space-between;align-items:flex-start;
+  padding:calc(14px + env(safe-area-inset-top)) 16px 0;font-family:var(--mono);font-size:10px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--cream);pointer-events:none;text-shadow:0 1px 6px rgba(16,44,74,.5);}
+#hud b{display:block;font-size:16px;letter-spacing:.04em;}
+
+#opening{position:fixed;inset:0;z-index:8;display:flex;flex-direction:column;justify-content:flex-end;
+  padding:0 24px calc(64px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,rgba(155,192,216,0) 30%,rgba(27,74,121,.5));transition:opacity .6s ease;pointer-events:none;}
+#opening.gone{opacity:0;pointer-events:none;}
+#opening h1{font-family:var(--display);font-weight:800;font-size:clamp(3.2rem,17vw,7rem);line-height:.86;
+  margin:0;color:var(--cream);letter-spacing:-.03em;text-shadow:3px 3px 0 rgba(220,75,62,.85);}
+#opening p{font-size:clamp(1rem,4.4vw,1.2rem);line-height:1.5;max-width:30ch;margin:18px 0 0;}
+#opening .cue{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;margin-top:28px;
+  animation:breathe 2.6s ease-in-out infinite;}
+
+#scrim{position:fixed;inset:0;z-index:9;background:rgba(16,40,68,.5);opacity:0;pointer-events:none;
+  transition:opacity .3s ease;backdrop-filter:blur(2px);}
+#scrim.open{opacity:1;pointer-events:auto;}
+#sheet{position:fixed;z-index:10;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;
+  background:var(--cream);color:var(--ink);border-radius:22px 22px 0 0;border:2px solid var(--ink);border-bottom:0;
+  padding:26px 24px calc(30px + env(safe-area-inset-bottom));transform:translateY(102%);
+  transition:transform .42s cubic-bezier(.22,.7,.28,1);max-height:86vh;max-height:86dvh;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;}
+#sheet.open{transform:translateY(0);}
+#sheet .grip{width:44px;height:4px;border-radius:9px;background:var(--ink);opacity:.28;margin:-8px auto 18px;}
+#sheet .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--ink-soft);display:flex;justify-content:space-between;gap:12px;}
+#sheet h2{font-family:var(--display);font-weight:700;font-size:clamp(2rem,8vw,2.7rem);line-height:1;
+  margin:.28em 0 0;letter-spacing:-.02em;}
+#sheet .gloss{font-family:var(--mono);font-size:12px;line-height:1.7;margin:14px 0 0;padding:12px 14px;
+  border:1px dashed var(--ink-soft);border-radius:10px;}
+#sheet .gloss em{font-style:italic;font-weight:700;}
+#sheet .body{font-size:1.12rem;line-height:1.62;margin:20px 0 0;}
+#sheet .body p{margin:0 0 .75em;}
+#sheet .body p:last-child{margin-bottom:0;}
+#sheet button.close{margin-top:24px;width:100%;font-family:var(--mono);font-size:11px;letter-spacing:.2em;
+  text-transform:uppercase;background:var(--ink);color:var(--cream);border:0;border-radius:99px;padding:15px;cursor:pointer;}
+#sheet.finale{border-color:var(--red);}
+#sheet.finale h2{color:var(--red);}
+#sheet.finale button.close{background:var(--red);}
+
+@media (min-width:760px){
+  #sheet{border-radius:22px;border-bottom:2px solid var(--ink);bottom:5vh;}
+  #her{width:82px;margin-left:-41px;}
+  .badge{width:40px;height:40px;font-size:15px;}
+}
+:focus-visible{outline:3px solid var(--red);outline-offset:4px;}
+@media (prefers-reduced-motion:reduce){.taplabel,#opening .cue{animation:none;} #sheet{transition:none;}}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <svg id="route" preserveAspectRatio="none"><path id="routepath"></path></svg>
+  <div id="world"></div>
+</div>
+
+<div id="her"></div>
+<div id="vignette"></div>
+<div id="grain"></div>
+
+<div id="hud">
+  <div>Clouds Eleven</div>
+  <div style="text-align:right"><b id="alt">0</b>metres</div>
+</div>
+
+<div id="opening">
+  <h1>Clouds<br>Eleven</h1>
+  <p>There are only ten clouds. There have been ten since 1803. This is all of them, and one more.</p>
+  <div class="cue">Scroll to climb &#8593;</div>
+</div>
+
+<div id="spacer"></div>
+<div id="scrim"></div>
+<div id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="grip"></div>
+  <div class="eyebrow"><span id="sheetNo"></span><span id="sheetAlt"></span></div>
+  <h2 id="sheetTitle"></h2>
+  <div class="gloss" id="sheetGloss"></div>
+  <div class="body" id="sheetBody"></div>
+  <button class="close" id="sheetClose">Keep climbing</button>
+</div>
+
+<script>
+/* ==========================================================================
+   PART 1 — THE WORDS.  This is the only block you need to edit.
+   ========================================================================== */
+
+const CONTENT = [
+  { no:"01", latin:"Stratus", alt:"200 m", tap:"you're inside it",
+    gloss:"<em>stratus</em>, spread out flat. From <em>sternere</em>, to strew. The same root as <em>street</em>.",
+    body:[
+      "The cloud you can stand inside.",
+      "The safety net you have built around you, the comfort bubble that will float you all the way up to where you want to get."
+    ]},
+
+  { no:"02", latin:"Cumulus", alt:"1,000 m", tap:"tap the heap",
+    gloss:"<em>cumulus</em>, a heap. Also the crowning addition to a heap, the last thing placed on top.",
+    body:[
+      "A heap. That is the whole word, and that is your whole habit.",
+      "The flood can take your flowers and your bookmarks and your letters, but not the heap of people you made yours in the process."
+    ]},
+
+  { no:"03", latin:"Stratocumulus", alt:"1,600 m", tap:"tap to count them",
+    gloss:"<em>stratocumulus</em>, spread out and heaped. <em>Perlucidus</em> is the variety with light coming through the gaps.",
+    body:[
+      "The most widespread cloud on earth.",
+      "Juru and Jizal and Dathu and Naru and Mishal and Athulya and the whole lot of them, in different parts of the world, from Attapadi to Pondi to Bangalore to Dubai to Florida.",
+      "(To Hyderabad 😌)"
+    ]},
+
+  { no:"04", latin:"Nimbostratus", alt:"2,500 m", tap:"tap, gently",
+    gloss:"<em>nimbus</em>, a rainstorm. And the ring of light around a god's head. One word, both meanings.",
+    body:[
+      "I cannot think of a way to connect this one to your life, <em>ente prakasaaa</em>.",
+      "So let us just call it <em>kattathum mazhethum vaadatha kattadiyaanu Prakasan</em>, or something 😞"
+    ]},
+
+  { no:"05", latin:"Altocumulus", alt:"4,000 m", tap:"tap for yellow",
+    gloss:"<em>altus</em>, high. And deep. The same word either way, depending only on where you stand.",
+    body:[
+      "Rows of it, gone yellow at six in the evening. A stand full of people.",
+      "Brazil is the high one and the deep one at once.",
+      "And you will still fight anyone who says Neymar goes down too easy."
+    ]},
+
+  { no:"06", latin:"Altostratus", alt:"5,000 m", tap:"tap to argue",
+    gloss:"<em>opacus</em>, lets nothing through. <em>Translucidus</em>, gives in a little.",
+    body:[
+      "<em>Opacus</em> when you want to, <em>translucidus</em> when you want to.",
+      "Always always always a blessing when I see the <em>opacus</em> turn <em>translucidus</em>, and then into that outpour where I get to see you at your most whimsical, most relaxed self."
+    ]},
+
+  { no:"07", latin:"Cirrostratus", alt:"8,000 m", tap:"tap for the halo",
+    gloss:"<em>cirrostratus</em>, curls spread thin. The only cloud that makes a halo, twenty two degrees, every time.",
+    body:[
+      "<em>Ente achayaa, ee Vismaya Prakasante aura</em>, awffffff.",
+      "<em>insert thapana.jpeg</em>"
+    ]},
+
+  { no:"08", latin:"Cirrocumulus", alt:"9,000 m", tap:"tap the ripples",
+    gloss:"<em>cirrocumulus</em>, heaped curls. Sailors call it a mackerel sky.",
+    body:[
+      "We will need to go back and chase that waterfall again.",
+      "Maybe in your Thar the next time?"
+    ]},
+
+  { no:"09", latin:"Cirrus", alt:"10,000 m", tap:"tap the curls",
+    gloss:"<em>cirrus</em>, a curl of hair. A ringlet. A tendril.",
+    body:[
+      "The highest cloud there is, and they named it after hair.",
+      "In Poondi you picked a flower off the ground and put it in mine.",
+      "Somebody had a word for that in 1803, which means you are not the first. Only the best at it."
+    ]},
+
+  { no:"10", latin:"Cumulonimbus", alt:"12,000 m", tap:"tap and stand back",
+    gloss:"<em>incus</em>, the anvil. The flat top a storm makes when the air above stops letting it rise.",
+    body:[
+      "You wanted to get a PhD. NET told you here you go, go get one.",
+      "That flat top has a name and it is not the end of the cloud, so we go one better.",
+      "Apparently meteorologists call it the overshooting top."
+    ]},
+
+  { no:"11", latin:"Clouds Eleven", alt:"December", finale:true, tap:"tap to unwrap",
+    gloss:"There is no eleventh cloud. There have been exactly ten since Luke Howard named them in 1803.",
+    body:[
+      "So you make one.",
+      "December, the exam again, the work between now and then, and the JRF at the end of it.",
+      "I am not hoping you get it, I have watched you do harder things with less warning.",
+      "Nobody has to buy you this one.",
+      "Go get yourself that early Christmas present my Vi, you got this!"
+    ]}
+];
+
+/* ==========================================================================
+   PART 2 — THE DRAWINGS.  Silhouettes follow the standard genus forms.
+   ========================================================================== */
+
+const puff = (x,y,s) => [[x,y+4*s,13*s,7*s],[x-7*s,y,8*s,7*s],[x+6*s,y-1*s,9*s,8*s]];
+const grid = (rows,s) => rows.reduce((a,[y,xs]) => a.concat(xs.reduce((b,x)=>b.concat(puff(x,y,s)),[])), []);
+
+const SHAPES = [
+  // 01 STRATUS
+  { w:[.90,440], vb:"0 0 200 110", sw:7,
+    e:[[100,66,78,13],[56,60,32,11],[144,60,32,11],[100,55,44,11]] },
+
+  // 02 CUMULUS
+  { w:[.58,285], vb:"0 0 200 120", sw:7,
+    e:[[100,86,50,16],[72,76,22,19],[100,61,29,25],[126,74,21,19],[86,69,19,17],[114,67,19,16]] },
+
+  // 03 STRATOCUMULUS — Juru and Co. stand on it
+  { w:[.88,430], vb:"0 0 200 120", sw:7,
+    e:[[100,84,74,15],[46,74,22,15],[76,70,24,17],[108,71,24,16],[140,75,21,14],[166,78,17,12]],
+    crowd:{y:62,from:46,to:160,n:9} },
+
+  // 04 NIMBOSTRATUS
+  { w:[.82,400], vb:"0 0 200 150", sw:7,
+    e:[[100,62,56,27],[62,58,27,21],[138,58,27,21],[100,44,38,19]],
+    rain:{y:88,to:136,from:48,span:104,n:8} },
+
+  // 05 ALTOCUMULUS
+  { w:[.84,410], vb:"0 0 200 120", sw:6,
+    e:grid([[46,[48,84,120,156]],[70,[36,72,108,144,176]],[94,[54,90,126,160]]],1) },
+
+  // 06 ALTOSTRATUS
+  { w:[.90,440], vb:"0 0 200 120", sw:7,
+    e:[[100,60,80,14],[90,45,44,10],[122,80,40,9]], sun:[150,34,17] },
+
+  // 07 CIRROSTRATUS
+  { w:[.88,430], vb:"0 0 200 130", sw:6,
+    e:[[100,64,76,9],[84,50,38,7],[124,80,34,6]], halo:[100,64,54] },
+
+  // 08 CIRROCUMULUS
+  { w:[.84,410], vb:"0 0 200 120", sw:5,
+    e:grid([[42,[40,66,92,118,144,168]],[62,[52,78,104,130,156]],[82,[40,66,92,118,144,168]],[100,[58,84,110,136,160]]],.55) },
+
+  // 09 CIRRUS — swept curls, and the curly one with the flower
+  { w:[.88,430], vb:"0 0 200 130", sw:0,
+    strokes:["M22 80 C 54 56, 84 90, 116 64 C 134 49, 150 56, 164 44",
+             "M32 100 C 66 78, 92 108, 128 82 C 146 70, 162 76, 178 62",
+             "M46 62 C 72 46, 96 70, 122 48"],
+    curly:[98,96] },
+
+  // 10 CUMULONIMBUS
+  { w:[.68,330], vb:"0 0 200 215", sw:7,
+    anvil:"M18 42 C 40 20, 160 20, 182 42 C 166 58, 34 58, 18 42 Z",
+    e:[[100,30,16,11],[100,54,44,15],[100,86,37,26],[100,126,43,28],[100,168,51,29],[66,166,25,22],[134,166,25,22]],
+    rain:{y:196,to:212,from:56,span:88,n:7} },
+
+  // 11 THE BEARD
+  { w:[.74,360], vb:"0 0 200 200", sw:7,
+    e:[[100,116,58,40],[68,102,26,26],[132,102,26,26],[100,152,40,30],[100,172,25,19]],
+    hat:true, gifts:true }
+];
+
+function person(x,y,s,opt){
+  opt = opt || {};
+  const hair = opt.curly
+    ? '<circle cx="0" cy="-31" r="14" fill="var(--ink)"/><circle cx="-11" cy="-25" r="8" fill="var(--ink)"/><circle cx="11" cy="-25" r="8" fill="var(--ink)"/>'
+    : opt.bun
+      ? '<path d="M-10 -30 C -10 -41, 10 -41, 10 -30 Z" fill="var(--ink)"/><circle cx="12" cy="-31" r="5" fill="var(--ink)"/>'
+      : '<path d="M-10 -29 C -10 -41, 10 -41, 10 -29 Z" fill="var(--ink)"/>';
+  const beard = opt.curly ? '<path d="M-9 -22 C -9 -8, 9 -8, 9 -22 Z" fill="var(--ink)"/>' : "";
+  const flower = opt.flower
+    ? '<g transform="translate(13,-36)">' +
+      [0,72,144,216,288].map(function(a){return '<ellipse cx="0" cy="-5" rx="3" ry="5" fill="var(--red)" transform="rotate('+a+')"/>';}).join("") +
+      '<circle r="2.4" fill="var(--cream)"/></g>'
+    : "";
+  return '<g transform="translate('+x+','+y+') scale('+s+')">'
+    + '<rect x="-8" y="-4" width="6" height="6" rx="2" fill="var(--ink)"/>'
+    + '<rect x="2" y="-4" width="6" height="6" rx="2" fill="var(--ink)"/>'
+    + '<rect x="-10" y="-24" width="20" height="22" rx="7" fill="var(--ink)"/>'
+    + '<circle cx="0" cy="-27" r="8" fill="var(--cream)" stroke="var(--ink)" stroke-width="2"/>'
+    + beard + hair + flower + '</g>';
+}
+
+function crowd(c){
+  let out = "";
+  for(let i=0;i<c.n;i++){
+    const t = c.n===1 ? 0 : i/(c.n-1);
+    const x = c.from + (c.to-c.from)*t;
+    const s = 0.7 + ((i*37)%5)*0.05;
+    out += person(x, c.y + ((i*53)%3), s, {bun:i%3===0, curly:i%4===1});
+  }
+  return out;
+}
+
+function cloudSVG(i){
+  const s = SHAPES[i], id = "c"+i, vb = s.vb;
+  const p = vb.split(" ").map(Number), vx=p[0], vy=p[1], vw=p[2], vhh=p[3];
+
+  const ell = (s.e||[]).map(function(a){return '<ellipse cx="'+a[0]+'" cy="'+a[1]+'" rx="'+a[2]+'" ry="'+a[3]+'"/>';}).join("");
+  const anvil = s.anvil ? '<path d="'+s.anvil+'"/>' : "";
+  const shape = ell + anvil;
+
+  const outline = shape
+    ? '<g fill="var(--ink)" stroke="var(--ink)" stroke-width="'+(s.sw||7)+'" stroke-linejoin="round">'+shape+'</g>' : "";
+  const fills = shape ? '<g fill="var(--cream)">'+shape+'</g>' : "";
+
+  const strokesInk = (s.strokes||[]).map(function(d){
+    return '<path d="'+d+'" fill="none" stroke="var(--ink)" stroke-width="21" stroke-linecap="round"/>';}).join("");
+  const strokesCream = (s.strokes||[]).map(function(d){
+    return '<path d="'+d+'" fill="none" stroke="var(--cream)" stroke-width="13" stroke-linecap="round"/>';}).join("");
+
+  const sun = s.sun ? '<circle cx="'+s.sun[0]+'" cy="'+s.sun[1]+'" r="'+s.sun[2]+'" fill="var(--cream)" opacity=".35"/>' : "";
+  const halo = s.halo ? '<circle cx="'+s.halo[0]+'" cy="'+s.halo[1]+'" r="'+s.halo[2]+'" fill="none" stroke="var(--cream)" stroke-width="3" stroke-dasharray="5 8" opacity=".85"/>' : "";
+
+  let rain = "";
+  if(s.rain){
+    const r = s.rain;
+    for(let k=0;k<r.n;k++){
+      const x = r.from + (r.span/(r.n-1))*k;
+      const y0 = r.y + ((k*29)%9);
+      rain += '<line x1="'+x+'" y1="'+y0+'" x2="'+(x-7)+'" y2="'+r.to+'" stroke="var(--cream)" stroke-width="3.4" stroke-linecap="round" opacity=".8"/>';
+    }
+  }
+
+  const hat = s.hat
+    ? '<g><path d="M44 74 C 56 12, 150 0, 170 38 C 178 56, 160 68, 148 70 C 118 48, 78 54, 44 74 Z" fill="var(--red)" stroke="var(--ink)" stroke-width="4" stroke-linejoin="round"/>'
+      + '<rect x="38" y="62" width="124" height="22" rx="11" fill="var(--cream)" stroke="var(--ink)" stroke-width="4"/>'
+      + '<circle cx="178" cy="34" r="14" fill="var(--cream)" stroke="var(--ink)" stroke-width="4"/></g>' : "";
+
+  const gifts = s.gifts
+    ? '<g><path d="M30 178 c0-17 8-27 18-27 s18 10 18 27 z" fill="var(--ink)"/>'
+      + '<rect x="32" y="174" width="32" height="8" rx="4" fill="var(--ink)"/>'
+      + '<rect x="146" y="150" width="36" height="10" rx="5" fill="var(--cream)" stroke="var(--ink)" stroke-width="3" transform="rotate(-12 164 155)"/>'
+      + '<path d="M156 146 l6 -7 l4 8 l7 -4 l-2 9" fill="none" stroke="var(--red)" stroke-width="3.4" stroke-linecap="round"/></g>' : "";
+
+  const curly = s.curly ? person(s.curly[0], s.curly[1], 1.05, {curly:true, flower:true}) : "";
+  const people = (s.crowd ? crowd(s.crowd) : "") + curly;
+
+  const clip = (s.e||[]).map(function(a){return '<ellipse cx="'+a[0]+'" cy="'+a[1]+'" rx="'+a[2]+'" ry="'+a[3]+'"/>';}).join("")
+    + (s.anvil ? '<path d="'+s.anvil+'"/>' : "")
+    + (s.strokes||[]).map(function(d){return '<path d="'+d+'" fill="none" stroke="#000" stroke-width="13" stroke-linecap="round"/>';}).join("");
+
+  return '<svg viewBox="'+vb+'" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+    + '<defs>'
+    + '<pattern id="ht'+id+'" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(12)">'
+    + '<circle cx="3.5" cy="3.5" r="1.7" fill="var(--ink)"/></pattern>'
+    + '<linearGradient id="fd'+id+'" x1="0" y1="1" x2="0" y2="0">'
+    + '<stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></linearGradient>'
+    + '<mask id="mk'+id+'"><rect x="'+vx+'" y="'+vy+'" width="'+vw+'" height="'+vhh+'" fill="url(#fd'+id+')"/></mask>'
+    + '<clipPath id="cp'+id+'">'+clip+'</clipPath>'
+    + '</defs>'
+    + sun + halo + rain
+    + outline + strokesInk
+    + fills + strokesCream
+    + '<g clip-path="url(#cp'+id+')" mask="url(#mk'+id+')" transform="translate(1.6 1.6)">'
+    + '<rect x="'+vx+'" y="'+vy+'" width="'+vw+'" height="'+vhh+'" fill="url(#ht'+id+')"/></g>'
+    + hat + gifts + people
+    + '</svg>';
+}
+
+/* her: hair tied back with loose strands, nose stud, black jersey, three stripes */
+const HER = '<svg viewBox="0 0 64 104" xmlns="http://www.w3.org/2000/svg">'
+  + '<rect x="21" y="80" width="8" height="20" rx="4" fill="var(--ink)"/>'
+  + '<rect x="35" y="80" width="8" height="20" rx="4" fill="var(--ink)"/>'
+  + '<rect x="19" y="96" width="12" height="6" rx="3" fill="var(--cream)" stroke="var(--ink)" stroke-width="2"/>'
+  + '<rect x="33" y="96" width="12" height="6" rx="3" fill="var(--cream)" stroke="var(--ink)" stroke-width="2"/>'
+  + '<rect x="15" y="44" width="34" height="40" rx="11" fill="var(--ink)"/>'
+  + '<g stroke="var(--cream)" stroke-width="2.6" stroke-linecap="round">'
+  + '<path d="M19 52 l6 -4"/><path d="M19 58 l6 -4"/><path d="M19 64 l6 -4"/>'
+  + '<path d="M45 52 l-6 -4"/><path d="M45 58 l-6 -4"/><path d="M45 64 l-6 -4"/></g>'
+  + '<path d="M22 46 h20 a5 5 0 0 1 -5 5 h-10 a5 5 0 0 1 -5 -5z" fill="var(--cream)"/>'
+  + '<circle cx="32" cy="28" r="12" fill="var(--cream)" stroke="var(--ink)" stroke-width="2.5"/>'
+  + '<circle cx="26" cy="31" r="1.6" fill="var(--red)"/>'
+  + '<path d="M32 12 c11 0 17 8 16 17 -3 -7 -9 -9 -16 -9 s-13 2 -16 9 c-1 -9 5 -17 16 -17z" fill="var(--ink)"/>'
+  + '<circle cx="47" cy="24" r="7" fill="var(--ink)"/>'
+  + '<g stroke="var(--ink)" stroke-width="2" fill="none" stroke-linecap="round">'
+  + '<path d="M17 20 c-4 -3 -6 -8 -5 -12"/><path d="M20 15 c-2 -4 -2 -8 0 -11"/>'
+  + '<path d="M50 16 c3 -3 4 -7 3 -10"/></g></svg>';
+
+/* ==========================================================================
+   PART 3 — LAYOUT, SCROLL, INTERACTION
+   ========================================================================== */
+
+const world=document.getElementById("world"), stage=document.getElementById("stage"),
+      spacer=document.getElementById("spacer"), herEl=document.getElementById("her"),
+      altEl=document.getElementById("alt"), opening=document.getElementById("opening"),
+      routeSVG=document.getElementById("route"), routePath=document.getElementById("routepath");
+
+const REDUCE = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const N = CONTENT.length;
+const XS = [30,68,34,70,30,66,36,72,32,62,50];
+const ALTS = [200,1000,1600,2500,4000,5000,8000,9000,10000,12000,12000];
+
+herEl.innerHTML = HER;
+
+const levels = CONTENT.map(function(c,i){
+  const b = document.createElement("button");
+  b.className = "level";
+  b.style.left = XS[i] + "%";
+  b.setAttribute("aria-label", "Cloud " + c.no + ", " + c.latin);
+  b.innerHTML = '<div class="cloudwrap"><span class="badge">'+(i+1)+'</span>'+cloudSVG(i)+'</div>'
+              + '<span class="taplabel">'+c.tap+'</span>';
+  b.addEventListener("click", function(){ openSheet(i); });
+  world.appendChild(b);
+  return b;
+});
+
+let vh=0, vw=0, step=0, worldH=0, ys=[], xsPx=[];
+
+function layout(){
+  vh = window.innerHeight; vw = window.innerWidth;
+  step = Math.round(vh * 0.92);
+  worldH = (N-1)*step + vh;
+
+  world.style.height = worldH + "px";
+  spacer.style.height = (vh + (N-1)*step) + "px";
+  routeSVG.style.height = worldH + "px";
+  routeSVG.setAttribute("viewBox", "0 0 " + vw + " " + worldH);
+
+  ys = []; xsPx = [];
+  levels.forEach(function(el,i){
+    const y = worldH - vh/2 - i*step;
+    el.style.top = y + "px";
+    el.style.width = Math.min(vw*SHAPES[i].w[0], SHAPES[i].w[1]) + "px";
+    ys.push(y); xsPx.push(vw*XS[i]/100);
+  });
+  routePath.setAttribute("d", "M" + levels.map(function(_,i){return xsPx[i]+","+ys[i];}).join(" L"));
+  onScroll(true);
+}
+
+const SKY=[[0,[155,192,216]],[.30,[76,158,212]],[.62,[42,111,176]],[.85,[35,64,126]],[1,[23,37,90]]];
+function skyAt(p){
+  for(let i=0;i<SKY.length-1;i++){
+    const p0=SKY[i][0], c0=SKY[i][1], p1=SKY[i+1][0], c1=SKY[i+1][1];
+    if(p<=p1){
+      const t=(p-p0)/(p1-p0);
+      return "rgb(" + c0.map(function(v,j){return Math.round(v+(c1[j]-v)*t);}).join(",") + ")";
+    }
+  }
+  return "rgb(23,37,90)";
+}
+
+let ticking=false, lastP=-1;
+function onScroll(force){
+  const max = Math.max(1,(N-1)*step);
+  const p = Math.min(1, Math.max(0, window.scrollY/max));
+  if(!force && Math.abs(p-lastP) < 0.0002) return;
+  lastP = p;
+
+  const ty = vh - worldH + p*(N-1)*step;
+  world.style.transform = "translate3d(0," + ty + "px,0)";
+  routeSVG.style.transform = "translate3d(0," + ty + "px,0)";
+
+  const sky = skyAt(p);
+  stage.style.backgroundColor = sky;
+  document.documentElement.style.setProperty("--sky", sky);
+
+  const seg = p*(N-1);
+  const i0 = Math.min(N-1, Math.floor(seg)), i1 = Math.min(N-1, i0+1), t = seg-i0;
+  const alt = Math.round(ALTS[i0] + (ALTS[i1]-ALTS[i0])*t);
+  altEl.textContent = p >= .995 ? "DEC" : alt.toLocaleString("en-GB").replace(/,/g," ");
+
+  const x = xsPx[i0] + (xsPx[i1]-xsPx[i0])*t;
+  const hop = REDUCE ? 0 : Math.sin(t*Math.PI)*-28;
+  herEl.style.left = x + "px";
+  herEl.style.top  = (vh*0.5 - 78 + hop) + "px";
+
+  opening.classList.toggle("gone", window.scrollY > vh*0.10);
+}
+
+addEventListener("scroll", function(){
+  if(ticking) return; ticking = true;
+  requestAnimationFrame(function(){ onScroll(); ticking=false; });
+}, {passive:true});
+
+let rt;
+addEventListener("resize", function(){ clearTimeout(rt); rt=setTimeout(layout,140); });
+addEventListener("orientationchange", function(){ setTimeout(layout,260); });
+
+const scrim=document.getElementById("scrim"), sheet=document.getElementById("sheet");
+let scrollLock=0;
+
+function openSheet(i){
+  const c = CONTENT[i];
+  document.getElementById("sheetNo").textContent = "Cloud " + c.no;
+  document.getElementById("sheetAlt").textContent = c.alt;
+  document.getElementById("sheetTitle").textContent = c.latin;
+  document.getElementById("sheetGloss").innerHTML = c.gloss;
+  document.getElementById("sheetBody").innerHTML = c.body.map(function(t){return "<p>"+t+"</p>";}).join("");
+  sheet.classList.toggle("finale", !!c.finale);
+  scrollLock = window.scrollY;
+  document.body.style.position="fixed";
+  document.body.style.top = (-scrollLock)+"px";
+  document.body.style.width="100%";
+  scrim.classList.add("open"); sheet.classList.add("open");
+  levels[i].classList.add("read");
+  document.getElementById("sheetClose").focus({preventScroll:true});
+}
+function closeSheet(){
+  scrim.classList.remove("open"); sheet.classList.remove("open");
+  document.body.style.position=""; document.body.style.top=""; document.body.style.width="";
+  window.scrollTo(0, scrollLock);
+}
+scrim.addEventListener("click", closeSheet);
+document.getElementById("sheetClose").addEventListener("click", closeSheet);
+addEventListener("keydown", function(e){ if(e.key==="Escape") closeSheet(); });
+
+layout();
+addEventListener("load", layout);
+</script>
+</body>
+</html>
